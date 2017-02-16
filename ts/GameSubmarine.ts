@@ -34,7 +34,7 @@ class Game {
         this.createLights();
 
         this.airplane = new AirPlaneCube(0,100);
-        // this.airplane.scale.set(.15,.15,.15);
+        this.airplane.scale.set(.22,.22,.22);
 
         this.sea = new Sea(0,-600);
         this.sky = new Sky(25,0,-600);

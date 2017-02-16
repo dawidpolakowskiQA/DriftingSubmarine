@@ -154,29 +154,61 @@ var GameScene = (function (_super) {
 }(THREE.Scene));
 var Sea = (function () {
     function Sea(x, y, z) {
-        // create the geometry (shape) of the cylinder;
-        // the parameters are: 
-        // radius top, radius bottom, height, number of segments on the radius, number of segments vertically
         var geom = new THREE.CylinderGeometry(600, 600, 800, 40, 10);
-        // rotate the geometry on the x axis
         geom.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-        // create the material 
+        // important: by merging vertices we ensure the continuity of the waves
+        geom.mergeVertices();
+        // get the vertices
+        var l = geom.vertices.length;
+        // create an array to store new data associated to each vertex
+        this.waves = new Array();
+        for (var i = 0; i < l; i++) {
+            // get each vertex
+            var v = geom.vertices[i];
+            // store some data associated to it
+            this.waves.push({ y: v.y,
+                x: v.x,
+                z: v.z,
+                // a random angle
+                ang: Math.random() * Math.PI * 2,
+                // a random distance
+                amp: 5 + Math.random() * 15,
+                // a random speed between 0.016 and 0.048 radians / frame
+                speed: 0.016 + Math.random() * 0.032
+            });
+        }
+        ;
         var mat = new THREE.MeshPhongMaterial({
             color: Colors.BLUE,
             transparent: true,
-            opacity: .6,
+            opacity: .8,
             shading: THREE.FlatShading,
         });
-        // To create an object in Three.js, we have to create a mesh 
-        // which is a combination of a geometry and some material
         this.mesh = new THREE.Mesh(geom, mat);
-        // Allow the sea to receive shadows
         this.mesh.receiveShadow = true;
         this.mesh.position.x = x != undefined ? x : 0;
         this.mesh.position.y = y != undefined ? y : 0;
         this.mesh.position.z = z != undefined ? z : 0;
     }
     Sea.prototype.update = function () {
+        // get the vertices
+        var verts = this.mesh.geometry.vertices;
+        var l = verts.length;
+        for (var i = 0; i < l; i++) {
+            var v = verts[i];
+            // get the data associated to it
+            var vprops = this.waves[i];
+            // update the position of the vertex
+            v.x = vprops.x + Math.cos(vprops.ang) * vprops.amp;
+            v.y = vprops.y + Math.sin(vprops.ang) * vprops.amp;
+            // increment the angle for the next frame
+            vprops.ang += vprops.speed;
+        }
+        // Tell the renderer that the geometry of the sea has changed.
+        // In fact, in order to maintain the best level of performance, 
+        // three.js caches the geometries and ignores any changes
+        // unless we add this line
+        this.mesh.geometry.verticesNeedUpdate = true;
         this.mesh.rotation.z += .005;
     };
     return Sea;
@@ -200,7 +232,7 @@ var Sky = (function () {
             // Trigonometry!!! I hope you remember what you've learned in Math :)
             // in case you don't: 
             // we are simply converting polar coordinates (angle, distance) into Cartesian coordinates (x, y)
-            c.mesh.position.y = Math.sin(a) * h + 200;
+            c.mesh.position.y = Math.sin(a) * h;
             c.mesh.position.x = Math.cos(a) * h;
             // rotate the cloud according to its position
             c.mesh.rotation.z = a + Math.PI / 2;
@@ -281,7 +313,7 @@ var Game = (function () {
         this.renderer = this.createRenderer();
         this.createLights();
         this.airplane = new AirPlaneCube(0, 100);
-        // this.airplane.scale.set(.15,.15,.15);
+        this.airplane.scale.set(.22, .22, .22);
         this.sea = new Sea(0, -600);
         this.sky = new Sky(25, 0, -600);
         this.scene.add(this.airplane.mesh);
