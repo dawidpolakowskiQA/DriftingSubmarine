@@ -6,6 +6,8 @@
 
 class Game {
 
+    version = "0.1.0";
+
     scene : GameScene
     camera: THREE.PerspectiveCamera;
     renderer: THREE.WebGLRenderer
