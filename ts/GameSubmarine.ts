@@ -34,7 +34,7 @@ class Game {
         this.createLights();
 
         this.airplane = new AirPlaneCube(0,100);
-        this.airplane.scale.set(.22,.22,.22);
+        this.airplane.scale.set(.30,.30,.30);
 
         this.sea = new Sea(0,-600);
         this.sky = new Sky(25,0,-600);
@@ -56,13 +56,30 @@ class Game {
 	    this.airplane.update(this.currentMousePosition);
 	    this.sea.update();
 	    this.sky.update();
+        this.updateCameraPosition();
 
 	    // render the scene
 	    this.renderer.render(this.scene, this.camera);
 
 	    // call the loop function again
       requestAnimationFrame(this.update);
-   }   
+   }  
+
+   private updateCameraPosition(){
+        this.camera.fov = this.normalize(this.currentMousePosition.x,-1,1,40, 80);
+        this.camera.updateProjectionMatrix ()
+   } 
+
+   private normalize(v,vmin,vmax,tmin, tmax):number{
+
+		var nv = Math.max(Math.min(v,vmax), vmin);
+		var dv = vmax-vmin;
+		var pc = (nv-vmin)/dv;
+		var dt = tmax-tmin;
+		var tv = tmin + (pc*dt);
+		return tv;
+
+	}
 
    public handleMouseMove(event:any){
         // here we are converting the mouse position value received 
@@ -162,6 +179,7 @@ class Game {
 	    // to activate the lights, just add them to the scene
 	    this.scene.add(hemisphereLight);  
 	    this.scene.add(shadowLight);
+        this.scene.add(new THREE.AmbientLight(0xdc8874, .5));
     }
 
 }
