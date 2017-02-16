@@ -1,5 +1,5 @@
 /// <reference path="../threeLib/three.d.ts" />
-/// <reference path="AirPlaneSimple.ts"/>
+/// <reference path="AirPlaneCube.ts"/>
 /// <reference path="Sea.ts"/>
 /// <reference path="Sky.ts"/>
 /// <reference path="Point.ts"/>
@@ -16,7 +16,7 @@ class Game {
 
     sea: Sea;
     sky: Sky;
-    airplane: AirPlaneSimple;
+    airplane: AirPlaneCube;
 
     currentMousePosition: Point;
 
@@ -33,8 +33,8 @@ class Game {
 
         this.createLights();
 
-        this.airplane = new AirPlaneSimple(0,100);
-        this.airplane.scale.set(.15,.15,.15);
+        this.airplane = new AirPlaneCube(0,100);
+        // this.airplane.scale.set(.15,.15,.15);
 
         this.sea = new Sea(0,-600);
         this.sky = new Sky(25,0,-600);

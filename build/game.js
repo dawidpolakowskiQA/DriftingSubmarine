@@ -3,12 +3,22 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var AirPlaneSimple = (function () {
-    function AirPlaneSimple(x, y, z) {
+var AirPlaneCube = (function () {
+    function AirPlaneCube(x, y, z) {
         this.mesh = new THREE.Object3D();
         // Create the cabin
         var geomCockpit = new THREE.BoxGeometry(60, 50, 50, 1, 1, 1);
         var matCockpit = new THREE.MeshPhongMaterial({ color: Colors.RED, shading: THREE.FlatShading });
+        // we can access a specific vertex of a shape through 
+        // the vertices array, and then move its x, y and z property:
+        geomCockpit.vertices[4].y -= 10;
+        geomCockpit.vertices[4].z += 20;
+        geomCockpit.vertices[5].y -= 10;
+        geomCockpit.vertices[5].z -= 20;
+        geomCockpit.vertices[6].y += 30;
+        geomCockpit.vertices[6].z += 20;
+        geomCockpit.vertices[7].y += 30;
+        geomCockpit.vertices[7].z -= 20;
         var cockpit = new THREE.Mesh(geomCockpit, matCockpit);
         cockpit.castShadow = true;
         cockpit.receiveShadow = true;
@@ -52,11 +62,14 @@ var AirPlaneSimple = (function () {
         this.propeller.add(blade);
         this.propeller.position.set(50, 0, 0);
         this.mesh.add(this.propeller);
+        this.pilot = new Pilot();
+        this.pilot.mesh.position.set(-10, 27, 0);
+        this.mesh.add(this.pilot.mesh);
         this.mesh.position.x = x != undefined ? x : this.mesh.position.x;
         this.mesh.position.y = y != undefined ? y : this.mesh.position.y;
         this.mesh.position.z = z != undefined ? z : this.mesh.position.z;
     }
-    AirPlaneSimple.prototype.update = function (currentMousePosition) {
+    AirPlaneCube.prototype.update = function (currentMousePosition) {
         // let's move the airplane between -100 and 100 on the horizontal axis, 
         // and between 25 and 175 on the vertical axis,
         // depending on the mouse position which ranges between -1 and 1 on both axes;
@@ -67,8 +80,9 @@ var AirPlaneSimple = (function () {
         this.mesh.position.y = targetY;
         this.mesh.position.x = targetX;
         this.propeller.rotation.x += 0.3;
+        this.pilot.update();
     };
-    AirPlaneSimple.prototype.normalize = function (v, vmin, vmax, tmin, tmax) {
+    AirPlaneCube.prototype.normalize = function (v, vmin, vmax, tmin, tmax) {
         var nv = Math.max(Math.min(v, vmax), vmin);
         var dv = vmax - vmin;
         var pc = (nv - vmin) / dv;
@@ -76,14 +90,14 @@ var AirPlaneSimple = (function () {
         var tv = tmin + (pc * dt);
         return tv;
     };
-    Object.defineProperty(AirPlaneSimple.prototype, "scale", {
+    Object.defineProperty(AirPlaneCube.prototype, "scale", {
         get: function () {
             return this.mesh.scale;
         },
         enumerable: true,
         configurable: true
     });
-    return AirPlaneSimple;
+    return AirPlaneCube;
 }());
 var Cloud = (function () {
     function Cloud() {
@@ -242,7 +256,7 @@ var Point = (function () {
     return Point;
 }());
 /// <reference path="../threeLib/three.d.ts" />
-/// <reference path="AirPlaneSimple.ts"/>
+/// <reference path="AirPlaneCube.ts"/>
 /// <reference path="Sea.ts"/>
 /// <reference path="Sky.ts"/>
 /// <reference path="Point.ts"/>
@@ -266,8 +280,8 @@ var Game = (function () {
         this.camera = this.createCamera();
         this.renderer = this.createRenderer();
         this.createLights();
-        this.airplane = new AirPlaneSimple(0, 100);
-        this.airplane.scale.set(.15, .15, .15);
+        this.airplane = new AirPlaneCube(0, 100);
+        // this.airplane.scale.set(.15,.15,.15);
         this.sea = new Sea(0, -600);
         this.sky = new Sky(25, 0, -600);
         this.scene.add(this.airplane.mesh);
@@ -372,4 +386,93 @@ function init() {
 function handleMouseMove(event) {
     game.handleMouseMove(event);
 }
+var Pilot = (function () {
+    function Pilot() {
+        this.mesh = new THREE.Object3D();
+        this.mesh.name = "pilot";
+        this.angleHairs = 0;
+        // Body of the pilot
+        var bodyGeom = new THREE.BoxGeometry(15, 15, 15);
+        var bodyMat = new THREE.MeshPhongMaterial({ color: Colors.BROWN, shading: THREE.FlatShading });
+        var body = new THREE.Mesh(bodyGeom, bodyMat);
+        body.position.set(2, -12, 0);
+        this.mesh.add(body);
+        // Face of the pilot
+        var faceGeom = new THREE.BoxGeometry(10, 10, 10);
+        var faceMat = new THREE.MeshLambertMaterial({ color: Colors.PINK });
+        var face = new THREE.Mesh(faceGeom, faceMat);
+        this.mesh.add(face);
+        // Hair element
+        var hairGeom = new THREE.BoxGeometry(4, 4, 4);
+        var hairMat = new THREE.MeshLambertMaterial({ color: Colors.BROWN });
+        var hair = new THREE.Mesh(hairGeom, hairMat);
+        // Align the shape of the hair to its bottom boundary, that will make it easier to scale.
+        hair.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0, 2, 0));
+        // create a container for the hair
+        var hairs = new THREE.Object3D();
+        // create a container for the hairs at the top 
+        // of the head (the ones that will be animated)
+        this.hairsTop = new THREE.Object3D();
+        // create the hairs at the top of the head 
+        // and position them on a 3 x 4 grid
+        for (var i = 0; i < 12; i++) {
+            var h = hair.clone();
+            var col = i % 3;
+            var row = Math.floor(i / 3);
+            var startPosZ = -4;
+            var startPosX = -4;
+            h.position.set(startPosX + row * 4, 0, startPosZ + col * 4);
+            this.hairsTop.add(h);
+        }
+        hairs.add(this.hairsTop);
+        // create the hairs at the side of the face
+        var hairSideGeom = new THREE.BoxGeometry(12, 4, 2);
+        hairSideGeom.applyMatrix(new THREE.Matrix4().makeTranslation(-6, 0, 0));
+        var hairSideR = new THREE.Mesh(hairSideGeom, hairMat);
+        var hairSideL = hairSideR.clone();
+        hairSideR.position.set(8, -2, 6);
+        hairSideL.position.set(8, -2, -6);
+        hairs.add(hairSideR);
+        hairs.add(hairSideL);
+        // create the hairs at the back of the head
+        var hairBackGeom = new THREE.BoxGeometry(2, 8, 10);
+        var hairBack = new THREE.Mesh(hairBackGeom, hairMat);
+        hairBack.position.set(-1, -4, 0);
+        hairs.add(hairBack);
+        hairs.position.set(-5, 5, 0);
+        this.mesh.add(hairs);
+        var glassGeom = new THREE.BoxGeometry(5, 5, 5);
+        var glassMat = new THREE.MeshLambertMaterial({ color: Colors.BROWN });
+        var glassR = new THREE.Mesh(glassGeom, glassMat);
+        glassR.position.set(6, 0, 3);
+        var glassL = glassR.clone();
+        glassL.position.z = -glassR.position.z;
+        var glassAGeom = new THREE.BoxGeometry(11, 1, 11);
+        var glassA = new THREE.Mesh(glassAGeom, glassMat);
+        this.mesh.add(glassR);
+        this.mesh.add(glassL);
+        this.mesh.add(glassA);
+        var earGeom = new THREE.BoxGeometry(2, 3, 2);
+        var earL = new THREE.Mesh(earGeom, faceMat);
+        earL.position.set(0, 0, -6);
+        var earR = earL.clone();
+        earR.position.set(0, 0, 6);
+        this.mesh.add(earL);
+        this.mesh.add(earR);
+    }
+    Pilot.prototype.update = function () {
+        // get the hair
+        var hairs = this.hairsTop.children;
+        // update them according to the angle angleHairs
+        var l = hairs.length;
+        for (var i = 0; i < l; i++) {
+            var h = hairs[i];
+            // each hair element will scale on cyclical basis between 75% and 100% of its original size
+            h.scale.y = .75 + Math.cos(this.angleHairs + i / 3) * .25;
+        }
+        // increment the angle for the next frame
+        this.angleHairs += 0.16;
+    };
+    return Pilot;
+}());
 //# sourceMappingURL=game.js.map
