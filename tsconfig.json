@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "sourceMap": true,
+        "outFile": "build/game.js"
+    },
+    "include": [
+        "ts/**/*.ts"
+    ]
+}
