@@ -2,6 +2,7 @@
 /// <reference path="AirPlaneSimple.ts"/>
 /// <reference path="Sea.ts"/>
 /// <reference path="Sky.ts"/>
+/// <reference path="Point.ts"/>
 
 class Game {
 
@@ -17,8 +18,12 @@ class Game {
     sky: Sky;
     airplane: AirPlaneSimple;
 
+    currentMousePosition: Point;
+
 
     constructor(){
+        this.currentMousePosition = new Point();
+
         this.width = window.innerWidth;
         this.height = window.innerHeight;
 
@@ -42,12 +47,13 @@ class Game {
 	    // container we created in the HTML
 	    this.gameContainer = document.getElementById('world');
 	    this.gameContainer.appendChild(this.renderer.domElement);
+
         this.update();
     }
 
     update = () => {
       // Rotate the propeller, the sea and the sky
-	    this.airplane.update();
+	    this.airplane.update(this.currentMousePosition);
 	    this.sea.update();
 	    this.sky.update();
 
@@ -58,7 +64,20 @@ class Game {
       requestAnimationFrame(this.update);
    }   
 
-    private handleWindowResize(){
+   public handleMouseMove(event:any){
+        // here we are converting the mouse position value received 
+	    // to a normalized value varying between -1 and 1;
+	    // this is the formula for the horizontal axis:
+    
+	    this.currentMousePosition.x =  -1 + (event.clientX / this.width)*2;
+
+	    // for the vertical axis, we need to inverse the formula 
+	    // because the 2D y-axis goes the opposite direction of the 3D y-axis
+    
+	    this.currentMousePosition.y = 1 - (event.clientY / this.height)*2;
+   }
+
+    public handleWindowResize(){
         // update height and width of the renderer and the camera
 	    this.height = window.innerHeight;
 	    this.width= window.innerWidth;
@@ -147,11 +166,22 @@ class Game {
 
 }
 
+
 window.addEventListener('load', init, false);
-// Listen to the screen: if the user resizes it
-// we have to update the camera and the renderer size
-window.addEventListener('resize', this.handleWindowResize, false);
+
+var game;
 
 function init(){
-    new Game();
+    game = new Game();
+
+    // Listen to the screen: if the user resizes it
+    // we have to update the camera and the renderer size
+    window.addEventListener('resize', game.handleWindowResize, false);
+
+    //add the listener
+    document.addEventListener('mousemove', this.handleMouseMove, false);
+}
+
+function handleMouseMove(event){
+    game.handleMouseMove(event);
 }

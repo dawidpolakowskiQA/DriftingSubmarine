@@ -56,8 +56,25 @@ var AirPlaneSimple = (function () {
         this.mesh.position.y = y != undefined ? y : this.mesh.position.y;
         this.mesh.position.z = z != undefined ? z : this.mesh.position.z;
     }
-    AirPlaneSimple.prototype.update = function () {
+    AirPlaneSimple.prototype.update = function (currentMousePosition) {
+        // let's move the airplane between -100 and 100 on the horizontal axis, 
+        // and between 25 and 175 on the vertical axis,
+        // depending on the mouse position which ranges between -1 and 1 on both axes;
+        // to achieve that we use a normalize function (see below)
+        var targetX = this.normalize(currentMousePosition.x, -1, 1, -100, 100);
+        var targetY = this.normalize(currentMousePosition.y, -1, 1, 25, 175);
+        // update the airplane's position
+        this.mesh.position.y = targetY;
+        this.mesh.position.x = targetX;
         this.propeller.rotation.x += 0.3;
+    };
+    AirPlaneSimple.prototype.normalize = function (v, vmin, vmax, tmin, tmax) {
+        var nv = Math.max(Math.min(v, vmax), vmin);
+        var dv = vmax - vmin;
+        var pc = (nv - vmin) / dv;
+        var dt = tmax - tmin;
+        var tv = tmin + (pc * dt);
+        return tv;
     };
     Object.defineProperty(AirPlaneSimple.prototype, "scale", {
         get: function () {
@@ -191,16 +208,50 @@ var Sky = (function () {
     };
     return Sky;
 }());
+var Point = (function () {
+    function Point(x, y) {
+        this._x = x || 0;
+        this._y = y || 0;
+    }
+    Object.defineProperty(Point.prototype, "x", {
+        get: function () {
+            return this._x;
+        },
+        set: function (value) {
+            this._x = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Point.prototype, "y", {
+        get: function () {
+            return this._y;
+        },
+        set: function (value) {
+            this._y = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Point.prototype.addToX = function (value) {
+        this._x += value;
+    };
+    Point.prototype.addToY = function (value) {
+        this._y += value;
+    };
+    return Point;
+}());
 /// <reference path="../threeLib/three.d.ts" />
 /// <reference path="AirPlaneSimple.ts"/>
 /// <reference path="Sea.ts"/>
 /// <reference path="Sky.ts"/>
+/// <reference path="Point.ts"/>
 var Game = (function () {
     function Game() {
         var _this = this;
         this.update = function () {
             // Rotate the propeller, the sea and the sky
-            _this.airplane.update();
+            _this.airplane.update(_this.currentMousePosition);
             _this.sea.update();
             _this.sky.update();
             // render the scene
@@ -208,6 +259,7 @@ var Game = (function () {
             // call the loop function again
             requestAnimationFrame(_this.update);
         };
+        this.currentMousePosition = new Point();
         this.width = window.innerWidth;
         this.height = window.innerHeight;
         this.scene = this.createScene();
@@ -227,6 +279,15 @@ var Game = (function () {
         this.gameContainer.appendChild(this.renderer.domElement);
         this.update();
     }
+    Game.prototype.handleMouseMove = function (event) {
+        // here we are converting the mouse position value received 
+        // to a normalized value varying between -1 and 1;
+        // this is the formula for the horizontal axis:
+        this.currentMousePosition.x = -1 + (event.clientX / this.width) * 2;
+        // for the vertical axis, we need to inverse the formula 
+        // because the 2D y-axis goes the opposite direction of the 3D y-axis
+        this.currentMousePosition.y = 1 - (event.clientY / this.height) * 2;
+    };
     Game.prototype.handleWindowResize = function () {
         // update height and width of the renderer and the camera
         this.height = window.innerHeight;
@@ -299,10 +360,16 @@ var Game = (function () {
     return Game;
 }());
 window.addEventListener('load', init, false);
-// Listen to the screen: if the user resizes it
-// we have to update the camera and the renderer size
-window.addEventListener('resize', this.handleWindowResize, false);
+var game;
 function init() {
-    new Game();
+    game = new Game();
+    // Listen to the screen: if the user resizes it
+    // we have to update the camera and the renderer size
+    window.addEventListener('resize', game.handleWindowResize, false);
+    //add the listener
+    document.addEventListener('mousemove', this.handleMouseMove, false);
+}
+function handleMouseMove(event) {
+    game.handleMouseMove(event);
 }
 //# sourceMappingURL=game.js.map
