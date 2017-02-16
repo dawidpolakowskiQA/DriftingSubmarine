@@ -27,7 +27,7 @@ class Sky{
 	    	// Trigonometry!!! I hope you remember what you've learned in Math :)
 	    	// in case you don't: 
 	    	// we are simply converting polar coordinates (angle, distance) into Cartesian coordinates (x, y)
-	    	c.mesh.position.y = Math.sin(a)*h;
+	    	c.mesh.position.y = Math.sin(a)*h+200;
 	    	c.mesh.position.x = Math.cos(a)*h;
 
 	    	// rotate the cloud according to its position
